@@ -1,0 +1,76 @@
+2.1 Marco Tecnológico
+El apartado queda con la palabra "El" suelta y sin contenido
+
+2.1.1 Cambio tecnológico y manejo de KST Skills
+El apartado menciona el modelo KST Skills pero no cita ninguna fuente que lo respalde...
+
+2.1.1 Cambio tecnológico y manejo de KST Skills
+Se cita Aleman (2023) para describir el modelo SAETA del TECBA, pero esa fuente es la página institucional....NADA QUE VER
+
+2.1.2 Metodos de resolución de problemas tecnológicos
+Falta tilde. 
+
+2.1.2 Metodos de resolución de problemas tecnológicos
+Las citas de Custer et al. (2001) y Murray (2019) se presentan con rangos de páginas ("pp. 50-60") idénticos en todos los casos, lo cual es poco probable, algo turbio
+
+2.1.3 Principio de inventiva y rol del invento tecnológico
+La cita de Borgianni et al. (2021) aparece como "Borgianni y otros, 2021, págs. 50-60"???
+
+2.1.4 Gerencia Agil
+Y la tilde
+
+La cita de Dong (2024) se presenta como "Dong , What is Agile Project Management?... algo rara
+
+Los doce principios del manifiesto se atribuyen a Iqbal (2022), pero no se cita el Manifiesto Ágil original
+
+2.1.4 Gerencia Agil
+Se menciona que se usará Scrum, pero no corresponde en este capitulo...
+
+2.2.1 Tecnicas de Recopilacion de Informacion
+El título tiene errores de tilde
+
+Repite dos veces el subtítulo "Generalidades" con contenido distinto.
+
+El apartado describe la observación en un solo párrafo y no indica si se aplicó en el proyecto ni a qué proceso. 
+
+2.2.2 Ingeniería de Sistemas y Metodología de Desarrollo
+La definición de Ingeniería de Sistemas no tiene ninguna cita.
+
+El apartado describe Scrum con detalle pero sin cita. 
+
+2.2.3 Herramientas de Programacion
+Errores de tilde 
+
+2.2.3 Herramientas de Programacion, Dart y Flutter
+El apartado describe Dart y Flutter sin ninguna cita.
+
+2.2.4 Geestores de Base de Datos
+Geestores???
+
+2.2.4 Geestores?? de Base de Datos, SQLite
+El apartado describe SQLite sin ninguna cita
+
+2.2.5 Arquitectura de Software
+Ninguna cita.
+
+2.2.6 Lenguaje de Modelamiento UML 2
+Ninguna cita
+
+2.2.7 Customer Relationship Management (CRM) y Recomendación
+YA QUE SU PROYECTO LO MENCIONA, SE EXIGE QUE APARTIR DE AHORA ELABORE UN CRM PARA SU PROYECTO DE GRADO Y POSTERIORES DEFENSAS...
+
+2.2.8 Dashboard y Metricas
+Por qué vacío???
+
+2.2.9 Prueba de Software
+Y quién lo hará???
+
+2.3???
+
+Referencias duplicada
+
+Aparece la referencia "EDICIÓN, A. 7. (18 de 05 de 2024). APA 7MA EDICIÓN." que no es una fuente citada en el texto????
+
+Hay referencias con rangos de páginas idénticos ("pp. 50-60") en varios autores distintos, lo cual es muuuuy raro....
+
+EN GENERAL EL AVANCE DEL PROYECTO ES UNA LÁGRIMA, SIN FORMATO, AGREGA APARTADO QUE NO TIENE NADA QUE VER CON EL PROYECTO, NO ES DIGNO DE UN ESTUDIANTE A PUNTO DE TITULARSE
