@@ -127,7 +127,7 @@ class MapaEnVivoState extends State<MapaEnVivo> {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.example.transporte_cochabamba',
+              userAgentPackageName: 'bo.maestrito.transporte',
             ),
             if (widget.lineasExtra.isNotEmpty)
               PolylineLayer(polylines: widget.lineasExtra),
