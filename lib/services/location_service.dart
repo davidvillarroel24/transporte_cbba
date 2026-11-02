@@ -43,7 +43,7 @@ class LocationService {
     final nuevo = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
+        distanceFilter: 1,
       ),
     ).asBroadcastStream();
     _flujo = nuevo;

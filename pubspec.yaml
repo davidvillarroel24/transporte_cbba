@@ -48,6 +48,12 @@ dependencies:
   crypto: ^3.0.5
   uuid: ^4.5.1
 
+  # Navegación asistida por cámara (AR simplificada): cámara en vivo +
+  # sensores del teléfono, sin ARCore.
+  camera: ^0.11.0+2
+  sensors_plus: ^6.0.1
+  flutter_device_compass: ^2.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

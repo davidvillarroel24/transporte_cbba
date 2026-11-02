@@ -9,6 +9,7 @@ import '../models/resultado_ruta.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/mapa_en_vivo.dart';
+import 'navegacion_camara_screen.dart';
 
 class ResultadoRutaScreen extends StatefulWidget {
   final Parada origen;
@@ -246,6 +247,18 @@ class RutaCard extends StatelessWidget {
 
   const RutaCard({super.key, required this.resultado});
 
+  void _navegarConCamara(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NavegacionCamaraScreen(
+          destino: resultado.paradaOrigen,
+          shapeId: resultado.shapeId,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final linea = resultado.linea;
@@ -293,6 +306,12 @@ class RutaCard extends StatelessWidget {
                 Text(
                   "Baja en: ${resultado.paradaDestino.nombre}",
                   style: TextStyle(fontSize: 12, color: AppColors.grisTexto),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => _navegarConCamara(context),
+                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                  label: const Text('Navegar con cámara'),
                 ),
               ],
             ),

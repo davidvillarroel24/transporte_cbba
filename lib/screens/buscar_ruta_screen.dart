@@ -93,7 +93,7 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
         title: const Text("Buscar ruta"),
         centerTitle: true,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,19 +167,22 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
                   ],
                 ),
                 constraints: const BoxConstraints(maxHeight: 220),
-                child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  itemCount: _sugerencias.length,
-                  itemBuilder: (context, i) {
-                    final parada = _sugerencias[i];
-                    return ListTile(
-                      dense: true,
-                      leading: const Icon(Icons.location_on, size: 18, color: Colors.red),
-                      title: Text(parada.nombre, style: const TextStyle(fontSize: 14)),
-                      onTap: () => _seleccionarParada(parada),
-                    );
-                  },
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: _sugerencias.length,
+                    itemBuilder: (context, i) {
+                      final parada = _sugerencias[i];
+                      return ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.location_on, size: 18, color: Colors.red),
+                        title: Text(parada.nombre, style: const TextStyle(fontSize: 14)),
+                        onTap: () => _seleccionarParada(parada),
+                      );
+                    },
+                  ),
                 ),
               ),
             const SizedBox(height: 20),
