@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Base de datos local para inspeccionar el esquema en DBeaver (no es la del celular)
+/herramientas/*.db
