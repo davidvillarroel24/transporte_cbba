@@ -9,6 +9,7 @@ import '../models/resultado_ruta.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/mapa_en_vivo.dart';
+import 'login_screen.dart';
 import 'navegacion_camara_screen.dart';
 
 class ResultadoRutaScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class ResultadoRutaScreen extends StatefulWidget {
 
 class _ResultadoRutaScreenState extends State<ResultadoRutaScreen> {
   late Future<List<ResultadoRuta>> _resultados;
+  ResultadoRuta? _seleccionada;
 
   @override
   void initState() {
@@ -35,6 +37,12 @@ class _ResultadoRutaScreenState extends State<ResultadoRutaScreen> {
       origen: widget.origen,
       destino: widget.destino,
     );
+  }
+
+  void _alSeleccionar(ResultadoRuta resultado) {
+    setState(() {
+      _seleccionada = _seleccionada == resultado ? null : resultado;
+    });
   }
 
   @override
@@ -61,7 +69,10 @@ class _ResultadoRutaScreenState extends State<ResultadoRutaScreen> {
                     Expanded(
                       child: Text(
                         "Destino:\n📍 ${widget.destino.nombre}",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     _BotonGuardarFavorito(destino: widget.destino),
@@ -76,22 +87,33 @@ class _ResultadoRutaScreenState extends State<ResultadoRutaScreen> {
                         children: [
                           ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: SizedBox(
-                              height: 200,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              height: _seleccionada == null ? 200 : 320,
                               child: _MapaResultado(
                                 origen: widget.origen,
                                 destino: widget.destino,
                                 resultados: resultados,
+                                seleccionada: _seleccionada,
                               ),
                             ),
                           ),
                           const SizedBox(height: 20),
                           const Text(
                             "Opciones disponibles",
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 15),
-                          ...resultados.map((r) => RutaCard(resultado: r)),
+                          ...resultados.map(
+                            (r) => RutaCard(
+                              resultado: r,
+                              seleccionada: r == _seleccionada,
+                              onTap: () => _alSeleccionar(r),
+                            ),
+                          ),
                         ],
                       ),
               ),
@@ -116,7 +138,11 @@ class _SinResultados extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.directions_bus_filled_outlined, size: 60, color: AppColors.grisTexto),
+            Icon(
+              Icons.directions_bus_filled_outlined,
+              size: 60,
+              color: AppColors.grisTexto,
+            ),
             const SizedBox(height: 16),
             Text(
               "No se encontró una línea directa entre tu ubicación y "
@@ -141,11 +167,13 @@ class _MapaResultado extends StatefulWidget {
   final Parada origen;
   final Parada destino;
   final List<ResultadoRuta> resultados;
+  final ResultadoRuta? seleccionada;
 
   const _MapaResultado({
     required this.origen,
     required this.destino,
     required this.resultados,
+    this.seleccionada,
   });
 
   @override
@@ -153,31 +181,64 @@ class _MapaResultado extends StatefulWidget {
 }
 
 class _MapaResultadoState extends State<_MapaResultado> {
-  late Future<List<Polyline>> _lineas;
+  final GlobalKey<MapaEnVivoState> _mapaKey = GlobalKey<MapaEnVivoState>();
+  late Future<Map<ResultadoRuta, List<LatLng>>> _trazados;
 
   @override
   void initState() {
     super.initState();
-    _lineas = _cargarLineas();
+    _trazados = _cargarTrazados();
   }
 
-  Future<List<Polyline>> _cargarLineas() async {
-    final lineas = <Polyline>[];
-    for (final resultado in widget.resultados.take(3)) {
+  @override
+  void didUpdateWidget(covariant _MapaResultado oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.seleccionada != oldWidget.seleccionada) {
+      final seleccionada = widget.seleccionada;
+      if (seleccionada != null) {
+        _trazados.then((trazados) {
+          final puntos = trazados[seleccionada];
+          if (puntos != null && puntos.isNotEmpty && mounted) {
+            _mapaKey.currentState?.moverA(puntos[puntos.length ~/ 2], zoom: 15);
+          }
+        });
+      }
+    }
+  }
+
+  Future<Map<ResultadoRuta, List<LatLng>>> _cargarTrazados() async {
+    final trazados = <ResultadoRuta, List<LatLng>>{};
+    for (final resultado in widget.resultados) {
       final shapeId = resultado.shapeId;
       if (shapeId == null || shapeId.isEmpty) continue;
       final puntos = await GtfsRepository.instance.puntosDeForma(shapeId);
-      if (puntos.isEmpty) continue;
-      lineas.add(Polyline(points: puntos, color: resultado.linea.color, strokeWidth: 4));
+      if (puntos.isNotEmpty) trazados[resultado] = puntos;
     }
-    return lineas;
+    return trazados;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Polyline>>(
-      future: _lineas,
+    return FutureBuilder<Map<ResultadoRuta, List<LatLng>>>(
+      future: _trazados,
       builder: (context, snapshot) {
+        final trazados = snapshot.data ?? const {};
+        final seleccionada = widget.seleccionada;
+        final lineas = <Polyline>[
+          for (final entrada in trazados.entries)
+            if (seleccionada == null || entrada.key == seleccionada)
+              Polyline(
+                points: entrada.value,
+                color: entrada.key.linea.color,
+                strokeWidth: seleccionada == null ? 4 : 6,
+              )
+            else
+              Polyline(
+                points: entrada.value,
+                color: entrada.key.linea.color.withOpacity(0.25),
+                strokeWidth: 3,
+              ),
+        ];
         final marcadores = [
           Marker(
             point: LatLng(widget.destino.lat, widget.destino.lon),
@@ -187,9 +248,10 @@ class _MapaResultadoState extends State<_MapaResultado> {
           ),
         ];
         return MapaEnVivo(
+          key: _mapaKey,
           centroInicial: LatLng(widget.origen.lat, widget.origen.lon),
           marcadoresExtra: marcadores,
-          lineasExtra: snapshot.data ?? const [],
+          lineasExtra: lineas,
         );
       },
     );
@@ -211,7 +273,22 @@ class _BotonGuardarFavoritoState extends State<_BotonGuardarFavorito> {
 
   Future<void> _guardar() async {
     final usuario = AuthService.instance.usuarioActual;
-    if (usuario == null || _guardado || _guardando) return;
+    if (_guardado || _guardando) return;
+    if (usuario == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Iniciá sesión para guardar favoritos'),
+          action: SnackBarAction(
+            label: 'Iniciar sesión',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _guardando = true);
     await FavoritosRepository.instance.agregar(
       usuarioId: usuario.id,
@@ -224,9 +301,9 @@ class _BotonGuardarFavoritoState extends State<_BotonGuardarFavorito> {
       _guardando = false;
       _guardado = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Agregado a tus favoritos')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Agregado a tus favoritos')));
   }
 
   @override
@@ -244,8 +321,15 @@ class _BotonGuardarFavoritoState extends State<_BotonGuardarFavorito> {
 
 class RutaCard extends StatelessWidget {
   final ResultadoRuta resultado;
+  final bool seleccionada;
+  final VoidCallback? onTap;
 
-  const RutaCard({super.key, required this.resultado});
+  const RutaCard({
+    super.key,
+    required this.resultado,
+    this.seleccionada = false,
+    this.onTap,
+  });
 
   void _navegarConCamara(BuildContext context) {
     Navigator.push(
@@ -262,61 +346,80 @@ class RutaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final linea = resultado.linea;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.blanco,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 4)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: linea.color.withOpacity(0.15),
-              shape: BoxShape.circle,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.blanco,
+          borderRadius: BorderRadius.circular(20),
+          border: seleccionada
+              ? Border.all(color: linea.color, width: 2)
+              : null,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
             ),
-            child: Icon(Icons.directions_bus, color: linea.color, size: 30),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  linea.nombreCorto,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                if (linea.nombreLargo.isNotEmpty)
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: linea.color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.directions_bus, color: linea.color, size: 30),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    linea.nombreLargo,
+                    linea.nombreCorto,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (linea.nombreLargo.isNotEmpty)
+                    Text(
+                      linea.nombreLargo,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.grisTexto,
+                      ),
+                    ),
+                  const SizedBox(height: 5),
+                  Text(
+                    "Tiempo estimado: ${resultado.tiempoMinutos} min aprox.",
+                  ),
+                  Text("Tarifa: ${resultado.tarifaTexto}"),
+                  Text(
+                    "Sube en: ${resultado.paradaOrigen.nombre}",
                     style: TextStyle(fontSize: 12, color: AppColors.grisTexto),
                   ),
-                const SizedBox(height: 5),
-                Text("Tiempo estimado: ${resultado.tiempoMinutos} min aprox."),
-                Text("Tarifa: ${resultado.tarifaTexto}"),
-                Text(
-                  "Sube en: ${resultado.paradaOrigen.nombre}",
-                  style: TextStyle(fontSize: 12, color: AppColors.grisTexto),
-                ),
-                Text(
-                  "Baja en: ${resultado.paradaDestino.nombre}",
-                  style: TextStyle(fontSize: 12, color: AppColors.grisTexto),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => _navegarConCamara(context),
-                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
-                  label: const Text('Navegar con cámara'),
-                ),
-              ],
+                  Text(
+                    "Baja en: ${resultado.paradaDestino.nombre}",
+                    style: TextStyle(fontSize: 12, color: AppColors.grisTexto),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () => _navegarConCamara(context),
+                    icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                    label: const Text('Navegar con cámara'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

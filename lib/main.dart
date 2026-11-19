@@ -18,7 +18,7 @@ class TransporteApp extends StatelessWidget {
 
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.verde,
+          seedColor: AppColors.primario,
         ),
         scaffoldBackgroundColor: AppColors.grisFondo,
         useMaterial3: true,

@@ -75,7 +75,7 @@ class DestinoCard extends StatelessWidget {
 
               decoration: BoxDecoration(
 
-                color: AppColors.verde.withOpacity(0.15),
+                color: AppColors.primario.withOpacity(0.15),
 
                 shape: BoxShape.circle,
 

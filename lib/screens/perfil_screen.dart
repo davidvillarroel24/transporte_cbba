@@ -38,8 +38,8 @@ class PerfilScreen extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 40,
-                backgroundColor: AppColors.verde.withOpacity(0.15),
-                child: Icon(Icons.person, size: 44, color: AppColors.verde),
+                backgroundColor: AppColors.primario.withOpacity(0.15),
+                child: Icon(Icons.person, size: 44, color: AppColors.primario),
               ),
               const SizedBox(height: 16),
               Center(
@@ -108,7 +108,7 @@ class PerfilScreen extends StatelessWidget {
       case RolUsuario.verificador:
         return const Color(0xFF1565C0);
       case RolUsuario.usuario:
-        return AppColors.verde;
+        return AppColors.primario;
     }
   }
 }

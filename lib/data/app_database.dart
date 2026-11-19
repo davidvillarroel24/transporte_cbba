@@ -23,7 +23,7 @@ class AppDatabase {
     final ruta = p.join(directorio, 'transporte_cochabamba.db');
     return openDatabase(
       ruta,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE meta (
@@ -106,13 +106,163 @@ class AppDatabase {
         ''');
 
         await _crearTablasCuentas(db);
+        await _crearTablasCongestionYTarifas(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await _crearTablasCuentas(db);
         }
+        if (oldVersion < 3) {
+          await _crearTablasCongestionYTarifas(db);
+        }
       },
     );
+  }
+
+  Future<void> _crearTablasCongestionYTarifas(Database db) async {
+    await db.execute('''
+      CREATE TABLE congestion_escolar (
+        id TEXT PRIMARY KEY,
+        nombre TEXT NOT NULL,
+        calle TEXT,
+        lat REAL NOT NULL,
+        lon REAL NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE tarifas_pasajero (
+        tipo TEXT PRIMARY KEY,
+        precio REAL NOT NULL
+      )
+    ''');
+
+    // Colegios con coordenada confirmada (ver Perfil de Grado / PDF de
+    // congestión escolar). Falta "Sara Ugarte de Salamanca" porque no se
+    // pudo geocodificar su calle (16 de Julio y Bolívar no está indexada
+    // en OpenStreetMap para Cochabamba); el admin lo agrega a mano desde
+    // el panel de administración marcándolo en el mapa.
+    const colegios = [
+      {
+        'id': 'seed_don_bosco',
+        'nombre': 'Don Bosco',
+        'calle': 'Av. Oquendo y Av. Papa Paulo',
+        'lat': -17.383196,
+        'lon': -66.150931,
+      },
+      {
+        'id': 'seed_domingo_sabio',
+        'nombre': 'Domingo Sabio',
+        'calle': 'Av. Aniceto Arce',
+        'lat': -17.381278,
+        'lon': -66.144187,
+      },
+      {
+        'id': 'seed_instituto_americano',
+        'nombre': 'Instituto Americano',
+        'calle': 'Entre Av. Circunvalación y Av. Julio Rodríguez, entre Av. Santa Cruz y Potosí',
+        'lat': -17.368204,
+        'lon': -66.154360,
+      },
+      {
+        'id': 'seed_elena_arce',
+        'nombre': 'Elena Arce',
+        'calle': 'Adela Zamudio y B.M. Pulacayo',
+        'lat': -17.370381,
+        'lon': -66.164453,
+      },
+      {
+        'id': 'seed_german_bush',
+        'nombre': 'German Bush',
+        'calle': 'Av. Julio Rodriguez y Pasos Kanki',
+        'lat': -17.367937,
+        'lon': -66.161107,
+      },
+      {
+        'id': 'seed_6_de_agosto',
+        'nombre': 'Escuela 6 de Agosto',
+        'calle': null,
+        'lat': -17.415800,
+        'lon': -66.151200,
+      },
+      {
+        'id': 'seed_ceferino_namuncura',
+        'nombre': 'Escuela Ceferino Namuncurá',
+        'calle': null,
+        'lat': -17.395700,
+        'lon': -66.163500,
+      },
+      {
+        'id': 'seed_gualberto_villarroel',
+        'nombre': 'Escuela Gualberto Villarroel',
+        'calle': null,
+        'lat': -17.419100,
+        'lon': -66.162600,
+      },
+      {
+        'id': 'seed_iv_centenario',
+        'nombre': 'Escuela IV Centenario',
+        'calle': null,
+        'lat': -17.374300,
+        'lon': -66.189500,
+      },
+      {
+        'id': 'seed_jose_gabriel_gumucio',
+        'nombre': 'Escuela José Gabriel de Gumucio',
+        'calle': null,
+        'lat': -17.408400,
+        'lon': -66.182500,
+      },
+      {
+        'id': 'seed_liceo_adela_zamudio',
+        'nombre': 'Liceo Adela Zamudio',
+        'calle': null,
+        'lat': -17.435000,
+        'lon': -66.151400,
+      },
+      {
+        'id': 'seed_liceo_guindalina_loayza',
+        'nombre': 'Liceo Guindalina Loayza',
+        'calle': null,
+        'lat': -17.426200,
+        'lon': -66.151000,
+      },
+      {
+        'id': 'seed_instituto_eduardo_laredo',
+        'nombre': 'Instituto Eduardo Laredo',
+        'calle': null,
+        'lat': -17.462700,
+        'lon': -66.117600,
+      },
+      {
+        'id': 'seed_liceo_mercedes_candia',
+        'nombre': 'Liceo Mercedes Candia de Ovando',
+        'calle': null,
+        'lat': -17.452400,
+        'lon': -66.129400,
+      },
+      {
+        'id': 'seed_liceo_elena_arze',
+        'nombre': 'Liceo Elena Arze de Arze',
+        'calle': null,
+        'lat': -17.477000,
+        'lon': -66.110100,
+      },
+    ];
+    for (final colegio in colegios) {
+      await db.insert('congestion_escolar', colegio, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
+
+    const tarifas = [
+      {'tipo': 'Niño', 'precio': 2.0},
+      {'tipo': 'Adulto', 'precio': 3.0},
+      {'tipo': 'Estudiante', 'precio': 1.5},
+      {'tipo': 'Universitario', 'precio': 2.0},
+      {'tipo': 'Adulto mayor', 'precio': 1.5},
+    ];
+    for (final tarifa in tarifas) {
+      await db.insert('tarifas_pasajero', tarifa, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
   }
 
   Future<void> _crearTablasCuentas(Database db) async {

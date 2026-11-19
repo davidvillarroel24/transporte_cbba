@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/gtfs_repository.dart';
 import '../data/lugares_conocidos.dart';
 import '../models/parada.dart';
+import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/accion_card.dart';
 import '../widgets/busqueda_destino.dart';
@@ -12,6 +13,7 @@ import 'buscar_ruta_screen.dart';
 import 'favoritos_screen.dart';
 import 'lineas_cercanas_screen.dart';
 import 'mapa_screen.dart';
+import 'resultado_ruta_screen.dart';
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -61,6 +63,31 @@ class _InicioScreenState extends State<InicioScreen> {
     );
   }
 
+  Future<void> _irADestinoDirecto(Parada destino) async {
+    final posicion = await LocationService.instance.ubicacionActual();
+    if (!mounted) return;
+    if (posicion == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Necesitamos tu ubicación para buscar la ruta. Activa el GPS.'),
+        ),
+      );
+      return;
+    }
+    final origen = Parada(
+      id: 'ubicacion_actual',
+      nombre: 'Mi ubicación actual',
+      lat: posicion.latitude,
+      lon: posicion.longitude,
+    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultadoRutaScreen(origen: origen, destino: destino),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,7 +109,7 @@ class _InicioScreenState extends State<InicioScreen> {
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.verde,
+                      color: AppColors.primario,
                     ),
                   ),
                 ],
@@ -106,6 +133,7 @@ class _InicioScreenState extends State<InicioScreen> {
               const SizedBox(height: 25),
               BusquedaDestino(
                 alBuscar: () => _irABuscarRuta(),
+                alSeleccionarDestino: (parada) => _irABuscarRuta(destinoInicial: parada),
               ),
               const SizedBox(height: 30),
               const Text(
@@ -177,9 +205,7 @@ class _InicioScreenState extends State<InicioScreen> {
                       return LugarCard(
                         nombre: lugar.nombre,
                         direccion: lugar.direccion,
-                        alSeleccionar: parada == null
-                            ? () {}
-                            : () => _irABuscarRuta(destinoInicial: parada),
+                        alSeleccionar: parada == null ? () {} : () => _irADestinoDirecto(parada),
                       );
                     }),
                   );

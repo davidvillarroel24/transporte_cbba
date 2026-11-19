@@ -73,7 +73,7 @@ class LugarCard extends StatelessWidget {
 
               decoration: BoxDecoration(
 
-                color: AppColors.verde.withOpacity(0.15),
+                color: AppColors.primario.withOpacity(0.15),
 
                 shape: BoxShape.circle,
 
@@ -84,7 +84,7 @@ class LugarCard extends StatelessWidget {
 
                 Icons.location_on,
 
-                color: AppColors.verde,
+                color: AppColors.primario,
 
                 size: 28,
 

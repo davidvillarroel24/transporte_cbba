@@ -14,6 +14,7 @@ import '../services/location_service.dart';
 class MapaEnVivo extends StatefulWidget {
   final List<Marker> marcadoresExtra;
   final List<Polyline> lineasExtra;
+  final List<CircleMarker> circulosExtra;
   final bool interactivo;
   final LatLng centroInicial;
   final double zoomInicial;
@@ -24,6 +25,7 @@ class MapaEnVivo extends StatefulWidget {
     super.key,
     this.marcadoresExtra = const [],
     this.lineasExtra = const [],
+    this.circulosExtra = const [],
     this.interactivo = true,
     this.centroInicial = const LatLng(-17.3895, -66.1568),
     this.zoomInicial = 14,
@@ -73,6 +75,12 @@ class MapaEnVivoState extends State<MapaEnVivo> {
     if (pos == null) return;
     _yaCentrado = true;
     _controlador.move(LatLng(pos.latitude, pos.longitude), widget.zoomInicial);
+  }
+
+  /// Mueve el mapa a un punto arbitrario (p. ej. para centrar/resaltar una
+  /// línea elegida), sin depender de la ubicación del usuario.
+  void moverA(LatLng punto, {double? zoom}) {
+    _controlador.move(punto, zoom ?? widget.zoomInicial);
   }
 
   @override
@@ -131,6 +139,8 @@ class MapaEnVivoState extends State<MapaEnVivo> {
             ),
             if (widget.lineasExtra.isNotEmpty)
               PolylineLayer(polylines: widget.lineasExtra),
+            if (widget.circulosExtra.isNotEmpty)
+              CircleLayer(circles: widget.circulosExtra),
             MarkerLayer(markers: marcadores),
             const RichAttributionWidget(
               attributions: [

@@ -1,16 +1,17 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../data/gtfs_repository.dart';
 import '../data/lugares_conocidos.dart';
 import '../models/parada.dart';
 import '../services/location_service.dart';
-import '../theme/app_colors.dart';
+import '../widgets/buscador_lugar.dart';
 import '../widgets/destino_card.dart';
+import 'elegir_punto_mapa_screen.dart';
 import 'resultado_ruta_screen.dart';
 
+/// Pantalla de búsqueda: origen y destino editables, cada uno con
+/// autocompletado (paradas, favoritos, lugares turísticos, direcciones
+/// reales) o eligiendo un punto tocando el mapa — estilo Trufi/Yandex.
 class BuscarRutaScreen extends StatefulWidget {
   final Parada? destinoInicial;
 
@@ -21,21 +22,20 @@ class BuscarRutaScreen extends StatefulWidget {
 }
 
 class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
-  final TextEditingController _controlador = TextEditingController();
-  Timer? _debounce;
+  final TextEditingController _controladorOrigen = TextEditingController();
+  final TextEditingController _controladorDestino = TextEditingController();
 
-  Parada? _destinoSeleccionado;
-  Position? _miUbicacion;
+  Parada? _origen;
+  Parada? _destino;
   bool _buscandoUbicacion = true;
-  List<Parada> _sugerencias = const [];
   final List<(LugarConocido, Parada?)> _destinosFrecuentes = [];
 
   @override
   void initState() {
     super.initState();
-    _destinoSeleccionado = widget.destinoInicial;
+    _destino = widget.destinoInicial;
     if (widget.destinoInicial != null) {
-      _controlador.text = widget.destinoInicial!.nombre;
+      _controladorDestino.text = widget.destinoInicial!.nombre;
     }
     _cargarUbicacion();
     _cargarDestinosFrecuentes();
@@ -45,8 +45,16 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
     final pos = await LocationService.instance.ubicacionActual();
     if (!mounted) return;
     setState(() {
-      _miUbicacion = pos;
       _buscandoUbicacion = false;
+      if (pos != null) {
+        _origen = Parada(
+          id: 'ubicacion_actual',
+          nombre: 'Mi ubicación actual',
+          lat: pos.latitude,
+          lon: pos.longitude,
+        );
+        _controladorOrigen.text = _origen!.nombre;
+      }
     });
   }
 
@@ -62,27 +70,64 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
     if (mounted) setState(() {});
   }
 
-  void _alCambiarTexto(String texto) {
-    setState(() => _destinoSeleccionado = null);
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () async {
-      final resultados = await GtfsRepository.instance.buscarParadasPorNombre(texto);
-      if (mounted) setState(() => _sugerencias = resultados);
+  void _seleccionarDestino(Parada parada) {
+    setState(() {
+      _destino = parada;
+      _controladorDestino.text = parada.nombre;
     });
   }
 
-  void _seleccionarParada(Parada parada) {
+  void _seleccionarOrigen(Parada parada) {
     setState(() {
-      _destinoSeleccionado = parada;
-      _sugerencias = const [];
-      _controlador.text = parada.nombre;
+      _origen = parada;
+      _controladorOrigen.text = parada.nombre;
     });
+  }
+
+  Future<void> _elegirEnMapa({required bool esOrigen}) async {
+    final resultado = await Navigator.push<Parada>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ElegirPuntoMapaScreen(
+          titulo: esOrigen ? 'Marca tu punto de partida' : 'Marca tu destino',
+        ),
+      ),
+    );
+    if (resultado == null) return;
+    if (esOrigen) {
+      _seleccionarOrigen(resultado);
+    } else {
+      _seleccionarDestino(resultado);
+    }
+  }
+
+  void _buscarRuta() {
+    final origen = _origen;
+    final destino = _destino;
+    if (origen == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Elegí un punto de partida primero')),
+      );
+      return;
+    }
+    if (destino == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Elegí un destino primero')),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultadoRutaScreen(origen: origen, destino: destino),
+      ),
+    );
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    _controlador.dispose();
+    _controladorOrigen.dispose();
+    _controladorDestino.dispose();
     super.dispose();
   }
 
@@ -98,93 +143,56 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "¿Dónde estás?",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            Container(
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: AppColors.blanco,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.my_location,
-                    color: _miUbicacion != null ? Colors.red : AppColors.grisTexto,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _buscandoUbicacion
-                          ? "Buscando tu ubicación..."
-                          : _miUbicacion != null
-                              ? "Mi ubicación actual"
-                              : "Sin acceso al GPS. Activa el permiso de ubicación.",
-                    ),
-                  ),
-                  if (!_buscandoUbicacion)
-                    IconButton(
-                      icon: const Icon(Icons.refresh, size: 20),
-                      onPressed: _cargarUbicacion,
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text(
-              "¿A dónde quieres ir?",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            TextField(
-              controller: _controlador,
-              onChanged: _alCambiarTexto,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                hintText: "Escribe una calle o punto de referencia",
-                filled: true,
-                fillColor: AppColors.blanco,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            if (_sugerencias.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(top: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.blanco,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3)),
-                  ],
-                ),
-                constraints: const BoxConstraints(maxHeight: 220),
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: _sugerencias.length,
-                    itemBuilder: (context, i) {
-                      final parada = _sugerencias[i];
-                      return ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.location_on, size: 18, color: Colors.red),
-                        title: Text(parada.nombre, style: const TextStyle(fontSize: 14)),
-                        onTap: () => _seleccionarParada(parada),
-                      );
-                    },
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "¿Dónde estás?",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
-              ),
+                if (_buscandoUbicacion)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  IconButton(
+                    icon: const Icon(Icons.map_outlined),
+                    tooltip: 'Elegir en el mapa',
+                    onPressed: () => _elegirEnMapa(esOrigen: true),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            BuscadorLugar(
+              hintText: 'Tu ubicación o una dirección',
+              controller: _controladorOrigen,
+              onSeleccionar: _seleccionarOrigen,
+            ),
+            const SizedBox(height: 25),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    "¿A dónde quieres ir?",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.map_outlined),
+                  tooltip: 'Elegir en el mapa',
+                  onPressed: () => _elegirEnMapa(esOrigen: false),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            BuscadorLugar(
+              hintText: 'Escribe una calle o punto de referencia',
+              controller: _controladorDestino,
+              onSeleccionar: _seleccionarDestino,
+            ),
             const SizedBox(height: 20),
             const Text(
               "Favoritos",
@@ -195,48 +203,14 @@ class _BuscarRutaScreenState extends State<BuscarRutaScreen> {
               final (lugar, parada) = entrada;
               return DestinoCard(
                 nombre: lugar.nombre,
-                alSeleccionar: parada == null ? () {} : () => _seleccionarParada(parada),
+                alSeleccionar: parada == null ? () {} : () => _seleccionarDestino(parada),
               );
             }),
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  final destino = _destinoSeleccionado;
-                  if (destino == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Selecciona un destino primero")),
-                    );
-                    return;
-                  }
-                  final ubicacion = _miUbicacion;
-                  if (ubicacion == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "Necesitamos tu ubicación para buscar la ruta. Activa el GPS.",
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  final origen = Parada(
-                    id: 'ubicacion_actual',
-                    nombre: 'Mi ubicación actual',
-                    lat: ubicacion.latitude,
-                    lon: ubicacion.longitude,
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ResultadoRutaScreen(
-                        origen: origen,
-                        destino: destino,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: _buscarRuta,
                 icon: const Icon(Icons.route),
                 label: const Text("Buscar ruta"),
               ),

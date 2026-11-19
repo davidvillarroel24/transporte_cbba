@@ -5,9 +5,10 @@ import '../data/lugares_conocidos.dart';
 import '../models/favorito.dart';
 import '../models/parada.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/lugar_card.dart';
-import 'buscar_ruta_screen.dart';
+import 'resultado_ruta_screen.dart';
 
 class FavoritosScreen extends StatefulWidget {
   const FavoritosScreen({super.key});
@@ -32,11 +33,27 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
         : FavoritosRepository.instance.deUsuario(usuario.id);
   }
 
-  Future<void> _irABuscarRuta(String nombre, double lat, double lon) async {
+  Future<void> _irADestinoDirecto(String nombre, double lat, double lon) async {
+    final posicion = await LocationService.instance.ubicacionActual();
+    if (!mounted) return;
+    if (posicion == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Necesitamos tu ubicación para buscar la ruta. Activa el GPS.'),
+        ),
+      );
+      return;
+    }
+    final origen = Parada(
+      id: 'ubicacion_actual',
+      nombre: 'Mi ubicación actual',
+      lat: posicion.latitude,
+      lon: posicion.longitude,
+    );
     final destino = Parada(id: 'favorito', nombre: nombre, lat: lat, lon: lon);
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => BuscarRutaScreen(destinoInicial: destino)),
+      MaterialPageRoute(builder: (context) => ResultadoRutaScreen(origen: origen, destino: destino)),
     );
   }
 
@@ -61,7 +78,7 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
             return LugarCard(
               nombre: lugar.nombre,
               direccion: lugar.direccion,
-              alSeleccionar: () => _irABuscarRuta(lugar.nombre, lugar.lat, lugar.lon),
+              alSeleccionar: () => _irADestinoDirecto(lugar.nombre, lugar.lat, lugar.lon),
             );
           }),
           const SizedBox(height: 20),
@@ -109,7 +126,7 @@ class _FavoritosScreenState extends State<FavoritosScreen> {
                     child: LugarCard(
                       nombre: favorito.nombre,
                       direccion: 'Favorito guardado',
-                      alSeleccionar: () => _irABuscarRuta(favorito.nombre, favorito.lat, favorito.lon),
+                      alSeleccionar: () => _irADestinoDirecto(favorito.nombre, favorito.lat, favorito.lon),
                     ),
                   );
                 }).toList(),

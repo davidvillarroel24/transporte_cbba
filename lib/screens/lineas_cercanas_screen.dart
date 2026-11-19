@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../data/gtfs_repository.dart';
 import '../models/linea.dart';
 import '../models/parada.dart';
 import '../services/location_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/mapa_en_vivo.dart';
 
 class LineasCercanasScreen extends StatefulWidget {
   const LineasCercanasScreen({super.key});
@@ -66,6 +69,55 @@ class _LineasCercanasScreenState extends State<LineasCercanasScreen> {
     });
   }
 
+  Future<void> _verRecorrido(Linea linea) async {
+    final shapeId = await GtfsRepository.instance.shapeDeLinea(linea.id);
+    final puntos = shapeId == null ? const <LatLng>[] : await GtfsRepository.instance.puntosDeForma(shapeId);
+    if (!mounted) return;
+    if (puntos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No hay recorrido guardado para ${linea.nombreCorto}')),
+      );
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(backgroundColor: linea.color, radius: 12),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        linea.nombreLargo.isEmpty ? linea.nombreCorto : '${linea.nombreCorto} · ${linea.nombreLargo}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: MapaEnVivo(
+                  centroInicial: puntos[puntos.length ~/ 2],
+                  lineasExtra: [Polyline(points: puntos, color: linea.color, strokeWidth: 4)],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,19 +173,23 @@ class _LineasCercanasScreenState extends State<LineasCercanasScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: lineas.map((linea) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: linea.color.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: linea.color),
-                                ),
-                                child: Text(
-                                  linea.nombreCorto,
-                                  style: TextStyle(
-                                    color: linea.color,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                              return InkWell(
+                                onTap: () => _verRecorrido(linea),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: linea.color.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: linea.color),
+                                  ),
+                                  child: Text(
+                                    linea.nombreCorto,
+                                    style: TextStyle(
+                                      color: linea.color,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               );
